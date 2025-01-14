@@ -467,7 +467,7 @@ object TestTree {  // Point d'entrée principal
 
 
     /****************************************************** ----- Test  ----- ********************************************************************************************/
-    
+
     /*
     // Initialisation de l'arbre vide
     var tree: Tree[Boolean] = Tree()
@@ -538,10 +538,10 @@ object TestTree {  // Point d'entrée principal
 
     /****************************************************** ----- Fin des tests  ----- ********************************************************************************************/
 
-    
-    
+
+
     /****************************************************** ----- AFFICHAGE AVEC MENU  ----- ********************************************************************************************/
-    
+
     runMenu()
 
 
@@ -551,7 +551,7 @@ object TestTree {  // Point d'entrée principal
       println("╔═════════════════════════════════════════════════════════════════════════════╗")
       println("║                       UNIVERSITE LE HAVRE NORMANDIE                         ║")
       println("║                    Projet SCALA : Arbre Ternaire                            ║")
-      println("║                 Encadré par Monsieur Antoine Dutot                          ║")
+      println("║                 Encadré par Monsieur Antoine DUTOT                          ║")
       println("╠═════════════════════════════════════════════════════════════════════════════╣")
       println("║                      Module : PROGRAMMATION FONCTIONNEL                     ║")
       println("║                Réalisé par : AIT MOKHTAR MOHAMED AMINE                      ║")
@@ -559,20 +559,25 @@ object TestTree {  // Point d'entrée principal
     }
 
     // Fonction pour afficher le menu principal
+
     def printMenu(): Unit = {
-      println("╔═════════════════════════════════════════╗")
-      println("║          MENU PRINCIPAL                ║")
-      println("╠═════════════════════════════════════════╣")
-      println("║ [1] Initialiser un arbre               ║")
-      println("║ [2] Insérer des clés                   ║")
-      println("║ [3] Test de récupération (get)         ║")
-      println("║ [4] Vérifier l'existence (contains)    ║")
-      println("║ [5] Supprimer une clé                  ║")
-      println("║ [6] Supprimer plusieurs clés           ║")
-      println("║ [7] Afficher l'arbre actuel            ║")
-      println("║ [8] Quitter                            ║")
-      println("╚═════════════════════════════════════════╝")
+      println("╔════════════════════════════════════════════════════════════╗")
+      println("║                      MENU PRINCIPAL                        ║")
+      println("╠════════════════════════════════════════════════════════════╣")
+      println("║ [1]  Initialiser un arbre                                  ║")
+      println("║ [2]  Insérer des clés                                      ║")
+      println("║ [3]  Afficher la taille de l'arbre                         ║")
+      println("║ [4]  Afficher la liste des valeurs (toList)                ║")
+      println("║ [5]  Test de récupération (get)                            ║")
+      println("║ [6]  Vérifier l'existence d'une clé (contains)             ║")
+      println("║ [7]  Afficher les paires clé-valeur (toKeyValueList)       ║")
+      println("║ [8]  Supprimer une clé (remove)                            ║")
+      println("║ [9]  Supprimer plusieurs clés                              ║")
+      println("║ [10] Afficher l'arbre actuel                               ║")
+      println("║ [11] Quitter                                               ║")
+      println("╚════════════════════════════════════════════════════════════╝")
     }
+
 
     // Fonction principale pour exécuter le menu
     def runMenu(): Unit = {
@@ -586,7 +591,7 @@ object TestTree {  // Point d'entrée principal
         val choice = readLine().toIntOption.getOrElse(0)
 
         choice match {
-          case 1 =>
+          case 1 => // Initialiser un arbre
             println("╔═════════════════════════════════════╗")
             println("║       INITIALISER UN ARBRE         ║")
             println("╠═════════════════════════════════════╣")
@@ -608,13 +613,20 @@ object TestTree {  // Point d'entrée principal
                 println("Option invalide, retour au menu principal.")
             }
 
-          case 2 =>
+          case 2 => // Insérer des clés
             print("\nEntrez les clés à insérer (séparées par des espaces) : ")
             val keys = readLine().split(" ").toList
             keys.foreach(key => tree = Tree.insert(tree, key))
             println("\nClés insérées dans l'arbre.")
 
-          case 3 =>
+          case 3 => // Afficher la taille de l'arbre
+            println(s"\nTaille de l'arbre : ${tree.size}")
+
+          case 4 => // Afficher la liste des valeurs (toList)
+            val values = tree.toList
+            println(s"\nListe des valeurs dans l'arbre : $values")
+
+          case 5 => // Test de récupération (get)
             if (tree.size == 0) {
               println("\nL'arbre est vide. Impossible d'effectuer un test de récupération.")
             } else {
@@ -624,7 +636,7 @@ object TestTree {  // Point d'entrée principal
               println(s"\nValeur associée à la clé '$key' : " + value.getOrElse("Aucune valeur trouvée"))
             }
 
-          case 4 =>
+          case 6 => // Vérifier l'existence d'une clé (contains)
             if (tree.size == 0) {
               println("\nL'arbre est vide. Impossible de vérifier l'existence d'une clé.")
             } else {
@@ -633,7 +645,11 @@ object TestTree {  // Point d'entrée principal
               println(s"\nLa clé '$key' existe-t-elle ? : " + tree.contains(key))
             }
 
-          case 5 =>
+          case 7 => // Afficher les paires clé-valeur (toKeyValueList)
+            val keyValuePairs = tree.toKeyValueList
+            println(s"\nListe des paires clé-valeur : $keyValuePairs")
+
+          case 8 => // Supprimer une clé (remove)
             if (tree.size == 0) {
               println("\nL'arbre est vide. Aucune clé à supprimer.")
             } else {
@@ -648,7 +664,7 @@ object TestTree {  // Point d'entrée principal
               tree = updatedTree
             }
 
-          case 6 =>
+          case 9 => // Supprimer plusieurs clés
             if (tree.size == 0) {
               println("\nL'arbre est vide. Aucune clé à supprimer.")
             } else {
@@ -665,17 +681,17 @@ object TestTree {  // Point d'entrée principal
               }
             }
 
-          case 7 =>
+          case 10 => // Afficher l'arbre actuel
             println("\nArbre actuel :")
             println(tree)
-            println("Taille de l'arbre : " + tree.size)
-            println("Liste des paires clé-valeur : " + tree.toKeyValueList)
+            println(s"Taille de l'arbre : ${tree.size}")
+            println(s"Liste des paires clé-valeur : ${tree.toKeyValueList}")
 
-          case 8 =>
+          case 11 => // Quitter
             println("Merci d'avoir utilisé le programme. À bientôt !")
             running = false
 
-          case _ =>
+          case _ => // Option invalide
             println("Option invalide, veuillez réessayer.")
         }
 
@@ -685,6 +701,7 @@ object TestTree {  // Point d'entrée principal
         }
       }
     }
+
 
 
   }
