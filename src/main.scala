@@ -10,7 +10,7 @@
 
 /*
  **************
- les mots clé :
+ Mots clé :
  **************
 
  1 - trait :est utilisé pour définir des interfaces et pour partager des champs entre les classes,
@@ -28,7 +28,6 @@
 */
 
 
-// Déclaration du trait Tree avec l'import de Tree
 // Déclaration du trait Tree avec l'import de Tree
 sealed trait Tree[+A] {
   import Tree._
@@ -54,6 +53,7 @@ sealed trait Tree[+A] {
    */
   def insert[B >: A](key: String, value: B): Tree[B] = Tree.insert(this, key, value, 0)
 
+
   /*
    *******************
    Méthode size(): son but est de calculer le nombre de clés/valeurs stockées dans l'arbre.
@@ -69,7 +69,20 @@ sealed trait Tree[+A] {
 
    Cette méthode utilise Tree.size pour effectuer un parcours de l'arbre et compter les clés/valeurs présentes.
    */
+
+
   def size: Int = Tree.size(this)
+
+  /*
+      // Implémentation alternative de size (moins optimisée)
+      def size: Int = this match {
+      case Leaf => 0
+      case Node(value, _, left, next, right) =>
+        val currentValue = if (value.isDefined) 1 else 0
+        currentValue + left.size + next.size + right.size
+    }
+   */
+
 
   /*
    *******************
@@ -87,6 +100,17 @@ sealed trait Tree[+A] {
    Cette méthode redirige vers Tree.toList pour parcourir l'arbre et collecter les valeurs dans une liste.
    */
   def toList: List[A] = Tree.toList(this)
+
+
+  /*
+  // Implémentation alternative de toList (moins optimisée)
+  def toList: List[A] = this match {
+    case Leaf => Nil
+    case Node(value, _, left, next, right) =>
+      val current = value.toList
+      current ++ left.toList ++ next.toList ++ right.toList
+  }
+  */
 
   /*
    *******************
@@ -144,6 +168,17 @@ sealed trait Tree[+A] {
   def toKeyValueList: List[(String, A)] = Tree.toKeyValueList(this)
 
   /*
+   //Implémentation simple de la méthode toKeyValueList
+
+   def toKeyValueList[A](root: Tree[A], key: String): List[(String, A)] = root match {
+      case Leaf => Nil
+      case node: Node[A] =>
+        val current = if (node.value.isDefined) List((key + node.char, node.value.get)) else Nil
+        current ++ toKeyValueList(node.left, key) ++ toKeyValueList(node.right, key) ++ toKeyValueList(node.next, key + node.char)
+    }
+  */
+
+  /*
    *******************
    Méthode remove(): son but est de supprimer une clé et sa valeur associée de l'arbre.
    *******************
@@ -155,29 +190,34 @@ sealed trait Tree[+A] {
    1 - key: String : La clé à supprimer de l'arbre.
 
    ****************
-   Type de retour : Elle renvoie un tuple contenant :
+   Type de retour :
    ****************
 
    1. Une Option[A] avec la valeur supprimée si elle existe, sinon None.
    2. Une nouvelle instance de l'arbre après suppression.
 
-   Cette méthode redirige vers Tree.remove pour gérer la suppression et assurer qu'aucune branche morte ne subsiste.
+   Appelle la méthode `Tree.remove` pour gérer la logique de suppression.
    */
   def remove(key: String): (Option[A], Tree[A]) = Tree.remove(this, key, 0)
 }
 
-// Définition des objets Leaf et Node
+// Définition des objets `Leaf` et `Node`
 case object Leaf extends Tree[Nothing]
 
 case class Node[A](
                     value: Option[A], // Valeur stockée dans le nœud (Option pour gérer l'absence de valeur)
                     char: Char,       // Caractère associé à ce nœud
-                    left: Tree[A],    // Sous-arbre gauche
-                    next: Tree[A],    // Sous-arbre pour le prochain caractère
-                    right: Tree[A]    // Sous-arbre droit
+                    left: Tree[A],    // Sous-arbre gauche ( liste horizontale : ordre des lettres au meme niveau dans la clé )
+                    next: Tree[A],    // Sous-arbre pour le prochain caractère ( liste verticale : ordre des lettres dans la clé )
+                    right: Tree[A]    // Sous-arbre droit ( liste horizontale : ordre des lettres au meme niveau dans la clé )
                   ) extends Tree[A]
 
-// Object compagnon Tree contenant les méthodes statiques
+
+
+
+
+/* Object compagnon Tree contenant les méthodes statiques */
+
 case object Tree {
   /*
    *******************
@@ -199,39 +239,23 @@ case object Tree {
   // Fonction récursive pour insérer une clé et sa valeur dans l'arbre ternaire
   def insert[A](root: Tree[A], key: String, value: A, n: Int): Tree[A] = root match {
     case Leaf =>
-      if (n < key.length) {
-        // Crée un nouveau nœud avec le caractère actuel de la clé
-        val newNode = Node(None, key.charAt(n), Leaf, Leaf, Leaf)
-        insert(newNode, key, value, n)
-      } else {
-        Node(Some(value), key.charAt(n - 1), Leaf, Leaf, Leaf)
-      }
-
+      insert(Node(None, key.charAt(n), Leaf, Leaf, Leaf), key, value, n)
 
     case node: Node[A] if node.char > key.charAt(n) =>
-      // Cas où le caractère du nœud est supérieur au caractère de la clé, insertion à gauche
       node.copy(left = insert(node.left, key, value, n))
 
-
     case node: Node[A] if node.char < key.charAt(n) =>
-      // Cas où le caractère du nœud est inférieur au caractère de la clé, insertion à droite
       node.copy(right = insert(node.right, key, value, n))
 
-
     case node: Node[A] if n < key.length - 1 =>
-      // On avance au prochain caractère de la clé en utilisant le pointeur `next`
       node.copy(next = insert(node.next, key, value, n + 1))
 
-
     case node: Node[A] =>
-      // Si on atteint la fin de la clé, on associe la valeur au nœud
       node.copy(value = Some(value))
   }
 
-
-  // Méthode d'insertion pour simuler un Set (associe toujours `true` à une clé)
-  def insert(root: Tree[Boolean], key: String): Tree[Boolean] =
-    insert(root, key, true, 0)
+  // Méthode insert qui associe automatiquement la valeur true pour une clé dans Tree[Boolean]
+  def insert(root: Tree[Boolean], key: String): Tree[Boolean] = insert(root, key, true, 0)
 
   /*
    *******************
@@ -248,10 +272,14 @@ case object Tree {
    Type de retour : Elle renvoie un entier représentant le nombre de clés/valeurs dans l'arbre.
    ****************
 
-   Cette méthode utilise une boucle avec une récursion terminale pour parcourir tous les nœuds de l'arbre.
-   Elle incrémente un compteur chaque fois qu'une clé/valeur est trouvée.
+   ****************
+   Fonctionnement : Cette méthode utilise une boucle avec une récursion terminale pour parcourir tous les nœuds de l'arbre.
+                    Elle incrémente un compteur chaque fois qu'une clé/valeur est trouvée.
+   ****************
+
    */
-  def size[A](tree: Tree[A]): Int = {
+
+  private def size[A](tree: Tree[A]): Int = {
     @annotation.tailrec
     def loop(nodes: List[Tree[A]], acc: Int): Int = nodes match {
       case Nil => acc
@@ -265,7 +293,7 @@ case object Tree {
 
   /*
    *******************
-   Méthode toList(): son but est de retourner une liste contenant toutes les valeurs stockées dans un arbre ternaire.
+   Méthode toList(): son but est de retourner une liste contenant toutes les valeurs stockées dans l'arbre.
    *******************
 
    ***********
@@ -278,10 +306,13 @@ case object Tree {
    Type de retour : Elle renvoie une liste de type List[A] contenant toutes les valeurs.
    ****************
 
-   Cette méthode utilise une boucle avec une récursion terminale pour parcourir les nœuds de l'arbre.
-   Les valeurs trouvées sont ajoutées à une liste accumulée, qui est retournée à la fin.
+   ****************
+   Fonctionnement : Cette méthode utilise une boucle avec une récursion terminale pour parcourir les nœuds de l'arbre.
+                    Les valeurs trouvées sont ajoutées à une liste accumulée, qui est retournée à la fin.
+   ****************
+
    */
-  def toList[A](tree: Tree[A]): List[A] = {
+  private def toList[A](tree: Tree[A]): List[A] = {
     @annotation.tailrec
     def loop(nodes: List[Tree[A]], acc: List[A]): List[A] = nodes match {
       case Nil => acc
@@ -309,9 +340,12 @@ case object Tree {
    Type de retour : Elle renvoie une Option[A], contenant la valeur associée si elle existe, sinon None.
    ****************
 
-   Cette méthode utilise une récursion terminale pour parcourir l'arbre en fonction des caractères de la clé.
+   ****************
+   Fonctionnement : Cette méthode utilise une récursion terminale pour parcourir l'arbre en fonction des caractères de la clé.
+   ****************
+
    */
-  def get[A](tree: Tree[A], key: String): Option[A] = {
+  private def get[A](tree: Tree[A], key: String): Option[A] = {
     @annotation.tailrec
     def loop(current: Tree[A], index: Int): Option[A] = current match {
       case Leaf => None
@@ -341,9 +375,12 @@ case object Tree {
    Type de retour : Elle renvoie un booléen (true si la clé existe, false sinon).
    ****************
 
-   Cette méthode utilise la méthode get pour déterminer si une clé est présente dans l'arbre.
+   ****************
+   Fonctionnement : Cette méthode utilise la méthode get pour déterminer si une clé est présente dans l'arbre.
+   ****************
+
    */
-  def contains[A](tree: Tree[A], key: String): Boolean = get(tree, key).isDefined
+  private def contains[A](tree: Tree[A], key: String): Boolean = get(tree, key).isDefined
 
   /*
    *******************
@@ -360,9 +397,15 @@ case object Tree {
    Type de retour : Elle renvoie une liste de tuples (String, A).
    ****************
 
-   Cette méthode utilise une boucle avec une récursion terminale pour parcourir l'arbre et collecter toutes les paires clé/valeur.
+   ****************
+   Fonctionnement : Cette méthode utilise une boucle avec une récursion terminale pour parcourir l'arbre et collecter toutes les paires clé/valeur.
+   ****************
+
    */
-  def toKeyValueList[A](tree: Tree[A]): List[(String, A)] = {
+
+
+  // Méthode toKeyValueList avec la récursivité terminale
+  private def toKeyValueList[A](root: Tree[A]): List[(String, A)] = {
     @annotation.tailrec
     def loop(nodes: List[(Tree[A], String)], acc: List[(String, A)]): List[(String, A)] = nodes match {
       case Nil => acc.reverse
@@ -371,8 +414,10 @@ case object Tree {
         val newAcc = if (value.isDefined) (prefix + char, value.get) :: acc else acc
         loop((left, prefix) :: (next, prefix + char) :: (right, prefix) :: tail, newAcc)
     }
-    loop(List((tree, "")), Nil)
+    loop(List((root, "")), Nil)
   }
+
+
 
   /*
    *******************
@@ -394,30 +439,11 @@ case object Tree {
    1. Une Option[A] représentant la valeur supprimée si elle existait, sinon None.
    2. Un nouvel arbre avec la clé et la valeur supprimées.
 
-   Cette méthode utilise un pattern matching pour parcourir l'arbre et supprimer la clé tout en maintenant la structure valide.
-   */
-  /*
-  def remove[A](tree: Tree[A], key: String, n: Int): (Option[A], Tree[A]) = tree match {
-    case Leaf => (None, Leaf)
-    case Node(value, char, left, next, right) if char > key.charAt(n) =>
-      val (removedValue, newLeft) = remove(left, key, n)
-      (removedValue, Node(value, char, newLeft, next, right))
+   ****************
+   Fonctionnement : Cette méthode utilise un pattern matching pour parcourir l'arbre et supprimer la clé tout en maintenant la structure valide.
+   ****************
+ */
 
-    case Node(value, char, left, next, right) if char < key.charAt(n) =>
-      val (removedValue, newRight) = remove(right, key, n)
-      (removedValue, Node(value, char, left, next, newRight))
-
-    case Node(value, char, left, next, right) if n < key.length - 1 =>
-      val (removedValue, newNext) = remove(next, key, n + 1)
-      (removedValue, Node(value, char, left, newNext, right))
-
-    case Node(value, char, left, next, right) =>
-      val removedValue = value
-      val newTree = if (left == Leaf && next == Leaf && right == Leaf) Leaf else Node(None, char, left, next, right)
-      (removedValue, newTree)
-  }
-}
-*/
   private def remove[A](root: Tree[A], key: String, n: Int): (Option[A], Tree[A]) = root match {
     case Leaf =>
       // Si l'arbre est vide, aucune valeur n'existe, on retourne (None, Leaf).
@@ -458,89 +484,95 @@ case object Tree {
 
 }
 
-
+// Import pour lire les entrées utilisateur depuis la console (readLine).
 import scala.io.StdIn.readLine
 
-
-object TestTree {  // Point d'entrée principal
+object TestTree {
   def main(args: Array[String]): Unit = {
 
 
-    /****************************************************** ----- Test  ----- ********************************************************************************************/
-
     /*
-    // Initialisation de l'arbre vide
-    var tree: Tree[Boolean] = Tree()
+    /** ------------------------------------------------------ Vérification des fonctionnalités de l'arbre ternaire ----------------------------------------------------- * */
 
-    println("\n\n***************************************************** -----  Arbre initialisé (vide)    ----- *************************************************************\n")
-    println(tree)
-    println("Taille de l'arbre : " + tree.size)
-    println("Liste des valeurs : " + tree.toList)
+    // Initialisation d'un arbre vide pour effectuer les tests
+    var arbre: Tree[Boolean] = Tree()
 
-    // Test insertion de plusieurs clés
-    val keys = List("chien", "chat", "chien", "coq", "elephant", "pie", "ch")
-    keys.foreach(key => tree = Tree.insert(tree, key))
+    println("\n\n---------------------------------------------------------       État initial de l'arbre (vide)        ----------------------------------------------------------\n")
+    println(arbre)
+    println("Nombre d'éléments dans l'arbre : " + arbre.size)
+    println("Liste des valeurs présentes dans l'arbre : " + arbre.toList)
 
-    println("\n\n***************************************************** -----  Arbre après insertion de plusieurs clés    ----- *************************************************************\n")
+    // Insertion de plusieurs clés dans l'arbre
+    arbre = Tree.insert(arbre, "chien")
+    arbre = Tree.insert(arbre, "chat")
+    arbre = Tree.insert(arbre, "coq")
+    arbre = Tree.insert(arbre, "pie")
 
-    println(tree)
-    println("Taille de l'arbre : " + tree.size)
-    println("Liste des valeurs : " + tree.toList)
-    println("Liste des paires clé-valeur : " + tree.toKeyValueList)
+    println("\n\n--------------------------------------------------------       État de l'arbre après insertion        ----------------------------------------------------------\n")
 
-    // Test de récupération d'une clé existante et non existante
-    println("\n\n***************************************************** -----  Test de la fonction get    ----- *************************************************************\n")
-    val existingKey = "chat"
-    val nonExistingKey = "loup"
-    println(s"\nRécupération de la valeur pour la clé existante '$existingKey' : " + tree.get(existingKey))
-    println(s"Récupération de la valeur pour la clé inexistante '$nonExistingKey' : " + tree.get(nonExistingKey))
+    println(arbre)
+    println("Nombre total d'éléments après insertion : " + arbre.size)
+    println("Valeurs actuellement dans l'arbre : " + arbre.toList)
+    println("Paires clé-valeur enregistrées : " + arbre.toKeyValueList)
 
-    // Test de présence d'une clé
-    println("\n\n***************************************************** -----  Test de la fonction contains    ----- *************************************************************\n")
-    println(s"\nLa clé '$existingKey' existe-t-elle ? : " + tree.contains(existingKey))
-    println(s"La clé '$nonExistingKey' existe-t-elle ? : " + tree.contains(nonExistingKey))
+    // Récupération de valeurs pour des clés spécifiques
+    println("\n\n-----------------------------------------------------        Test de récupération avec 'get'        ------------------------------------------------------------\n")
+    val cleExistante = "chat"
+    val cleInexistante = "chaton"
+    println(s"\nRécupération pour la clé existante '$cleExistante' : " + arbre.get(cleExistante))
+    println(s"Récupération pour une clé absente '$cleInexistante' : " + arbre.get(cleInexistante))
 
-    // Test suppression d'une clé existante
-    println("\n\n***************************************************** -----  Test de la fonction remove    ----- *************************************************************\n")
-    val keyToRemove = "chat"
-    val (removedValue, updatedTree) = tree.remove(keyToRemove)
-    println(s"\nSuppression de la clé '$keyToRemove', valeur supprimée : " + removedValue)
-    println("Arbre après suppression :")
-    println(updatedTree)
-    println("Taille de l'arbre après suppression : " + updatedTree.size)
-    println("Liste des paires clé-valeur après suppression : " + updatedTree.toKeyValueList)
+    // Vérification de l'existence des clés dans l'arbre
+    println("\n\n-------------------------------------------------        Vérification de l'existence avec 'contains'        ------------------------------------------------------\n")
+    println(s"\nLa clé '$cleExistante' est-elle présente ? : " + arbre.contains(cleExistante))
+    println(s"La clé '$cleInexistante' est-elle présente ? : " + arbre.contains(cleInexistante))
 
-    // Test suppression d'une clé inexistante
-    val keyToRemoveNonExisting = "loup"
-    val (removedValue2, updatedTree2) = tree.remove(keyToRemoveNonExisting)
-    println(s"\nSuppression de la clé inexistante '$keyToRemoveNonExisting', valeur supprimée : " + removedValue2)
-    println("Arbre après tentative de suppression d'une clé inexistante :")
-    println(updatedTree2.toKeyValueList)
+    // Suppression d'une clé existante
+    println("\n\n-------------------------------------------------------       Suppression d'une clé existante        ------------------------------------------------------------\n")
+    val cleASupprimer = "chat"
+    val (valeurSupprimee, arbreMisAJour) = arbre.remove(cleASupprimer)
+    println(s"\nClé supprimée : '$cleASupprimer', Valeur associée : " + valeurSupprimee)
+    println("État de l'arbre après suppression :")
+    println(arbreMisAJour)
+    println("Nombre total d'éléments après suppression : " + arbreMisAJour.size)
+    println("Paires clé-valeur restantes : " + arbreMisAJour.toKeyValueList)
 
-    // Test de suppression successive
-    val successiveRemovals = List("chien", "pie", "coq", "elephant", "ch")
-    val listKeyValue = tree.toKeyValueList
-    println(s"\nSuppressions successives des cles '$successiveRemovals' a partire de l'arbre initial '$listKeyValue' :")
-    var currentTree = tree
-    successiveRemovals.foreach { key =>
-      val (value, newTree) = currentTree.remove(key)
-      println(s"\nSuppression de la clé '$key', valeur supprimée : " + value)
-      println("Arbre après suppression :")
-      println(newTree.toKeyValueList)
-      currentTree = newTree
+    // Suppression d'une clé inexistante
+    val cleASupprimerInexistante = "mouette"
+    val (valeurSupprimee2, arbreMisAJour2) = arbre.remove(cleASupprimerInexistante)
+    println(s"\nTentative de suppression d'une clé inexistante '$cleASupprimerInexistante', Valeur supprimée : " + valeurSupprimee2)
+    println("État de l'arbre après cette tentative :")
+    println(arbreMisAJour2.toKeyValueList)
+
+    // Suppressions successives de plusieurs clés
+    val suppressionsSuccessives = List("chien", "chaton", "coq", "pie")
+    val listePairesInitiales = arbre.toKeyValueList
+    println(s"\nSuppressions successives des clés suivantes : '$suppressionsSuccessives' à partir de l'arbre initial : '$listePairesInitiales' :")
+    var arbreCourant = arbre
+    suppressionsSuccessives.foreach { cle =>
+      val (valeur, nouvelArbre) = arbreCourant.remove(cle)
+      println(s"\nClé supprimée : '$cle', Valeur associée : " + valeur)
+      println("État de l'arbre après cette suppression :")
+      println(nouvelArbre.toKeyValueList)
+      arbreCourant = nouvelArbre
     }
 
-    println("\nArbre final après suppressions successives :")
-    println(currentTree)
-    println("Taille finale de l'arbre : " + currentTree.size)
-    println("Liste des paires clé-valeur finales : " + currentTree.toKeyValueList)
-  }*/
+    println("\nÉtat final de l'arbre après toutes les suppressions :")
+    println(arbreCourant)
+    println("Nombre total d'éléments restants dans l'arbre : " + arbreCourant.size)
+    println("Paires clé-valeur finales : " + arbreCourant.toKeyValueList)
 
-    /****************************************************** ----- Fin des tests  ----- ********************************************************************************************/
+    /** ------------------------------------------------------------- Fin des tests de l'arbre ternaire ---------------------------------------------------------------- */
+
+*/
 
 
 
-    /****************************************************** ----- AFFICHAGE AVEC MENU  ----- ********************************************************************************************/
+
+
+
+    /** -------------------------------------------------------------          AFFICHAGE AVEC MENU        -------------------------------------------------------------*/
+
 
     runMenu()
 
@@ -593,17 +625,17 @@ object TestTree {  // Point d'entrée principal
         choice match {
           case 1 => // Initialiser un arbre
             println("╔═════════════════════════════════════╗")
-            println("║       INITIALISER UN ARBRE         ║")
+            println("║       INITIALISER UN ARBRE          ║")
             println("╠═════════════════════════════════════╣")
-            println("║ [1] Utiliser l'arbre de l'énoncé   ║")
-            println("║ [2] Créer un arbre vide            ║")
+            println("║ [1] Utiliser l'arbre de l'énoncé    ║")
+            println("║ [2] Créer un arbre vide             ║")
             println("╚═════════════════════════════════════╝")
             print("Faites votre choix : ")
             val initChoice = readLine().toIntOption.getOrElse(0)
             initChoice match {
               case 1 =>
                 tree = Tree()
-                val keys = List("chien", "chat", "chien", "coq", "elephant", "pie", "ch")
+                val keys = List("chien", "chat", "coq", "pie")
                 keys.foreach(key => tree = Tree.insert(tree, key))
                 println("\nArbre initialisé avec les clés de l'énoncé.")
               case 2 =>
@@ -688,7 +720,7 @@ object TestTree {  // Point d'entrée principal
             println(s"Liste des paires clé-valeur : ${tree.toKeyValueList}")
 
           case 11 => // Quitter
-            println("Merci d'avoir utilisé le programme. À bientôt !")
+            println("Merci d'avoir utilisé le programme. À bientôt :) !")
             running = false
 
           case _ => // Option invalide
@@ -710,64 +742,86 @@ object TestTree {  // Point d'entrée principal
 
 
 
-// ### Réponse aux questions
 
 
-//  - *Questions sur la fonction Insert :
+/*******************************************************
+ ****************** RÉPONSES AUX QUESTIONS **************
+ *******************************************************/
 
-//  - **Obtiendrons-nous un jour la valeur `false` ?** Non, car `false` n'est jamais stocké dans l'arbre. Si une clé n'est pas présente, cela signifie simplement qu'elle n'est pas dans l'ensemble.
-
-//  - **Que se passe-t-il si on demande une clé non présente ?** Si une clé est absente, l'arbre n'aura aucun nœud pour cette clé, ce qui signifie que nous traiterons l'absence de valeur comme équivalente à `false` ou à "non présent dans l'ensemble".
-
-// ***************
-
-//  - *Questions sur la fonction get :
-
-//  - **Que faire 'get' si la clé n’existe pas ? Retourne None si la clé n'existe pas dans l'arbre, évitant les erreurs et respectant le concept de programmation fonctionnelle.
-
-// ***************
-
-
-/*
- * Questions sur la fonction remove :
+/** =====================================================
+ * === Questions liées à la méthode `insert` ===
+ * =====================================================
  *
- * - **L’élément supprimé est-il la seule valeur à retourner ?**
- *   Non, la fonction retourne également une référence vers la nouvelle structure de l'arbre après suppression.
+ * - **La valeur `false` peut-elle apparaître dans l'arbre ?**
+ *   Non. La méthode `insert` ne stocke jamais la valeur `false`.
+ *   L'absence d'une clé est interprétée comme sa non-présence
+ *   dans l'ensemble des clés.
  *
- * - **Que faire si on fait deux ou trois suppressions de suite ?**
- *   Chaque suppression fonctionne indépendamment. Si des suppressions successives laissent des branches inutiles,
- *   elles sont nettoyées automatiquement grâce à la logique des conditions dans le code.
+ * - **Que se passe-t-il si une clé recherchée est absente ?**
+ *   Si une clé n'est pas présente dans l'arbre, aucun nœud
+ *   correspondant n'existe. Cela équivaut à considérer que
+ *   la clé est inexistante.
  *
- * - **Que faire si la valeur n’existe pas ?**
- *   La fonction retourne `(None, root)` pour indiquer qu'aucune modification n'a été faite sur l'arbre.
- *
- * - **Peut‑on supprimer des éléments qui ne sont pas en bas de l’arbre ?**
- *   Oui, la fonction permet de supprimer n'importe quel élément dans l'arbre, qu'il soit une feuille ou un nœud interne,
- *   tant qu'il correspond à une clé existante.
- *
- * - **Peut‑il rester des lettres qui ne sont pas utilisées dans un mot après suppression ?**
- *   Oui, cela peut arriver si une lettre fait partie d'une clé partiellement supprimée,
- *   mais elle a encore des pointeurs vers des sous-arbres utiles (gauche ou droit).
- *   Par exemple, après avoir inséré "chien" et "chat", puis supprimé "chien",
- *   la lettre 'i' restera dans l'arbre car elle a un pointeur vers 'a', qui est encore utile pour "chat".
- *   on peut eviter ca avec la reorganisation de l'arbre, mais c'est pas demande !
+ */
 
+/** =====================================================
+ * === Questions liées à la méthode `get` ===
+ * =====================================================
  *
- * - **Cette méthode n’est pas triviale à mettre en place, expliquez en détail son fonctionnement :**
- *   - La fonction parcourt l'arbre en suivant les caractères de la clé.
- *   - Lorsqu'elle trouve un nœud correspondant au dernier caractère de la clé, elle supprime la valeur associée.
- *   - Après suppression, chaque nœud est vérifié pour déterminer s'il doit être conservé ou remplacé par `Leaf`.
- *   - Cela garantit que l'arbre ne contient que des branches utiles après toute suppression.
+ * - **Que retourne la méthode si la clé n'existe pas ?**
+ *   La méthode `get` renvoie `None` lorsqu'une clé n'est pas
+ *   trouvée dans l'arbre. Cela garantit une gestion sûre et
+ *   évite les erreurs inutiles.
+ *
+ */
+
+/** =====================================================
+ * === Questions liées à la méthode `remove` ===
+ * =====================================================
+ *
+ * - **La valeur supprimée est-elle la seule chose retournée ?**
+ *   Non. En plus de la valeur supprimée, la méthode renvoie
+ *   une nouvelle instance de l'arbre, mise à jour après la
+ *   suppression.
+ *
+ * - **Comment la méthode gère-t-elle des suppressions successives ?**
+ *   Chaque suppression est indépendante. Si des branches
+ *   inutilisées apparaissent après plusieurs suppressions,
+ *   elles sont automatiquement supprimées grâce à la logique
+ *   d'implémentation.
+ *
+ * - **Que se passe-t-il si la clé à supprimer n'existe pas ?**
+ *   La méthode renvoie `(None, tree)` pour indiquer qu'aucune
+ *   modification n'a été effectuée sur l'arbre.
+ *
+ * - **Peut-on supprimer des nœuds internes ?**
+ *   Oui, la méthode est capable de supprimer aussi bien des
+ *   feuilles que des nœuds internes, à condition qu'ils
+ *   correspondent à une clé existante.
+ *
+ * - **Des lettres inutiles peuvent-elles rester après suppression ?**
+ *   Oui, des lettres peuvent subsister si elles pointent
+ *   vers des sous-arbres encore utilisés. Par exemple, si
+ *   "chien" et "chat" sont insérés, puis "chien" est supprimé,
+ *   la lettre 'i' peut rester car elle est encore utilisée
+ *   pour former "chat".
+ *
+ * - **Pourquoi la méthode `remove` est-elle complexe ?**
+ *   1. Elle parcourt l'arbre en suivant chaque caractère de la clé.
+ *   2. Elle supprime la valeur associée au dernier caractère.
+ *   3. Chaque nœud est vérifié après suppression pour déterminer
+ *      s'il doit être conservé ou remplacé par `Leaf`.
+ *   4. Cela garantit que l'arbre reste cohérent et ne contient
+ *      que des branches utiles.
+ *
  */
 
 
 
-/**
- *
- * *********
- * conclusion : À travers ce TP et ce module, j'ai pu enrichir et apprendre un nouveau paradigme de programmation.
- * *********  j'ai pu apprendre comment construire les arbres binaire en scala tout en respectant les différentes
- * règles de programmation fonctionnelle(fonction pure,fonction totale,récursive terminale,...)
- *
- *
+/*
+ * *************************************************************************************************************************************************
+ * conclusion : À travers ce projet et ce module, j'ai pu enrichir mes compétences en découvrant un nouveau paradigme de programmation.
+ * **********   J'ai également acquis la capacité de construire et de manipuler des structures complexes comme des arbres ternaires en Scala,
+ * **********   tout en respectant les différentes règles de la programmation fonctionnelle (fonction pure, fonction totale, récursivité terminale).
+ ***************************************************************************************************************************************************
  */
